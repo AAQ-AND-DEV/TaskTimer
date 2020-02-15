@@ -20,7 +20,9 @@ class MainActivity : AppCompatActivity() {
 
         //testInsert()
         //testUpdate()
-        testBulkUpdate()
+        //testBulkUpdate()
+        //testDelete()
+        testDelete2()
 
         val projection = arrayOf(TasksContract.Columns.TASK_NAME, TasksContract.Columns.TASK_SORT_ORDER)
         val sortColumn = TasksContract.Columns.TASK_SORT_ORDER
@@ -45,16 +47,30 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "*****************")
 
     }
+    private fun testDelete2(){
+
+        val selection = TasksContract.Columns.TASK_DESCRIPTION + " =?"
+        val selectionArgs = arrayOf("for deletion")
+        val rowAffected  = contentResolver.delete(TasksContract.CONTENT_URI, selection, selectionArgs)
+        Log.d(TAG, "nu. rows deleted is $rowAffected")
+    }
+    private fun testDelete(){
+
+        val taskUri = TasksContract.buildUriFromId(3)
+        val rowAffected  = contentResolver.delete(taskUri, null, null)
+        Log.d(TAG, "nu. row deleted is $rowAffected")
+    }
 
     private fun testBulkUpdate(){
         val values = ContentValues().apply {
-            put(TasksContract.Columns.TASK_SORT_ORDER, 99)
-            put(TasksContract.Columns.TASK_DESCRIPTION, "Completed")
+            put(TasksContract.Columns.TASK_SORT_ORDER, 999)
+            put(TasksContract.Columns.TASK_DESCRIPTION, "for deletion")
         }
-        val selection = TasksContract.Columns.TASK_SORT_ORDER + " =2"
+        val selection = TasksContract.Columns.TASK_SORT_ORDER + " =?"
+        val selectionArgs = arrayOf("99")
 
         //val taskUri = TasksContract.buildUriFromId(4)
-        val rowAffected  = contentResolver.update(TasksContract.CONTENT_URI, values, selection, null)
+        val rowAffected  = contentResolver.update(TasksContract.CONTENT_URI, values, selection, selectionArgs)
         Log.d(TAG, "nu. rows updated is $rowAffected")
     }
     private fun testUpdate(){
