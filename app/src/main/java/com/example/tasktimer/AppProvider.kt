@@ -164,6 +164,10 @@ class AppProvider: ContentProvider() {
 
             else -> throw IllegalArgumentException("unknown Uri: $uri")
         }
+        if (recordId > 0){
+            Log.d(TAG, "insert: Setting notifyChange with $uri")
+            context.contentResolver?.notifyChange(uri, null)
+        }
         Log.d(TAG, "exiting insert, returning $returnUri")
         return returnUri
     }
@@ -213,6 +217,10 @@ class AppProvider: ContentProvider() {
             }
             else -> throw IllegalArgumentException("unknown uri: $uri")
         }
+        if (count>0){
+            Log.d(TAG, "update: setting notifyChange with $uri")
+            context.contentResolver?.notifyChange(uri, null)
+        }
         Log.d(TAG, "Exiting update, returning $count ")
         return count
     }
@@ -256,6 +264,10 @@ class AppProvider: ContentProvider() {
                 count = db.delete(TimingsContract.TABLE_NAME, selectionCriteria, selectionArgs)
             }
             else -> throw IllegalArgumentException("unknown uri: $uri")
+        }
+        if (count>0){
+            Log.d(TAG, "delete: setting notifyChange with $uri")
+            context.contentResolver?.notifyChange(uri, null)
         }
         Log.d(TAG, "Exiting delete, returning $count ")
         return count

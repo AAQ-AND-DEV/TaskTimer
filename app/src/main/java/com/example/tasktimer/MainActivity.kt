@@ -1,99 +1,64 @@
 package com.example.tasktimer
 
-import android.content.ContentValues
+import android.content.res.Configuration
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
-
+import android.view.View
+import androidx.fragment.app.Fragment
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.content_main.*
 
 private const val TAG = "MainActivity"
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), AddEditFragment.OnSaveClicked {
+
+    //whether activity is in 2-pane mode, ie. in landscape, or on tablet
+    private var mTwoPane = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.d(TAG, "onCreate: starts")
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
 
-        //testInsert()
-        //testUpdate()
-        //testBulkUpdate()
-        //testDelete()
-        testDelete2()
-
-        val projection = arrayOf(TasksContract.Columns.TASK_NAME, TasksContract.Columns.TASK_SORT_ORDER)
-        val sortColumn = TasksContract.Columns.TASK_SORT_ORDER
-        //val cursor = contentResolver.query(TasksContract.buildUriFromId(2), projection, null, null, sortColumn)
-        val cursor = contentResolver.query(TasksContract.CONTENT_URI, null, null, null, sortColumn)
-        Log.d(TAG, "***************")
-        cursor.use{
-            if (it!= null && cursor!=null){
-            while (it.moveToNext()){
-                //cycle through all records
-                with(cursor){
-                    val id = getLong(0)
-                    val name = getString(1)
-                    val desc = getString(2)
-                    val sortOrder = getString(3)
-                    val result = "ID: $id, Name: $name, desc: $desc sort Order: $sortOrder"
-                    Log.d(TAG, "onCreate: reading data $result")
-                }
-            }
-            }
+        mTwoPane = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        Log.d(TAG, "onCreate: value of mTwoPane is $mTwoPane")
+        val fragment = supportFragmentManager.findFragmentById(R.id.task_details_container)
+        if (fragment != null){
+            //there was existing fragment to edit task, make sure panes set correctly
+           showEditPane()
+        } else{
+            task_details_container.visibility = if (mTwoPane) View.INVISIBLE else View.GONE
+            mainFragment.view?.visibility = View.VISIBLE
         }
-        Log.d(TAG, "*****************")
-
+        Log.d(TAG, "onCreate: finished")
     }
-    private fun testDelete2(){
-
-        val selection = TasksContract.Columns.TASK_DESCRIPTION + " =?"
-        val selectionArgs = arrayOf("for deletion")
-        val rowAffected  = contentResolver.delete(TasksContract.CONTENT_URI, selection, selectionArgs)
-        Log.d(TAG, "nu. rows deleted is $rowAffected")
-    }
-    private fun testDelete(){
-
-        val taskUri = TasksContract.buildUriFromId(3)
-        val rowAffected  = contentResolver.delete(taskUri, null, null)
-        Log.d(TAG, "nu. row deleted is $rowAffected")
+    private fun showEditPane(){
+        task_details_container.visibility = View.VISIBLE
+        //hide the left pane, if in single pane view
+        mainFragment.view?.visibility = if (mTwoPane) View.VISIBLE else View.GONE
     }
 
-    private fun testBulkUpdate(){
-        val values = ContentValues().apply {
-            put(TasksContract.Columns.TASK_SORT_ORDER, 999)
-            put(TasksContract.Columns.TASK_DESCRIPTION, "for deletion")
+    private fun removeEditPane(fragment: Fragment? = null){
+        Log.d(TAG, "removeEditPane called")
+        if (fragment != null){
+            supportFragmentManager.beginTransaction()
+                .remove(fragment)
+                .commit()
         }
-        val selection = TasksContract.Columns.TASK_SORT_ORDER + " =?"
-        val selectionArgs = arrayOf("99")
+        //set visibility of right-hand-pane
+        task_details_container.visibility = if (mTwoPane) View.INVISIBLE else View.GONE
+        //show left-hand
+        mainFragment.view?.visibility = View.VISIBLE
 
-        //val taskUri = TasksContract.buildUriFromId(4)
-        val rowAffected  = contentResolver.update(TasksContract.CONTENT_URI, values, selection, selectionArgs)
-        Log.d(TAG, "nu. rows updated is $rowAffected")
+        supportActionBar?.setDisplayHomeAsUpEnabled(false)
     }
-    private fun testUpdate(){
-        val values = ContentValues().apply{
-            put(TasksContract.Columns.TASK_NAME, "Content Provider")
-            put(TasksContract.Columns.TASK_DESCRIPTION, "Record Content provider videos")
-        }
-        val taskUri = TasksContract.buildUriFromId(4)
-        val rowAffected  = contentResolver.update(taskUri, values, null, null)
-        Log.d(TAG, "nu. row updated is $rowAffected")
-
-    }
-
-    private fun testInsert(){
-        val values = ContentValues().apply{
-            put(TasksContract.Columns.TASK_NAME, "New Task 1")
-            put(TasksContract.Columns.TASK_DESCRIPTION, "Desc 1")
-            put(TasksContract.Columns.TASK_SORT_ORDER, 2)
-        }
-        val uri = contentResolver.insert(TasksContract.CONTENT_URI, values)
-        Log.d(TAG, "New row id (in uri) is $uri")
-        if (uri!= null){
-        Log.d(TAG, "id (in uri) is ${TasksContract.getId(uri)}")
-        }
+    override fun onSaveClicked() {
+        Log.d(TAG, "onSaveClicked: called")
+        val fragment = supportFragmentManager.findFragmentById(R.id.task_details_container)
+        removeEditPane(fragment)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -106,9 +71,73 @@ class MainActivity : AppCompatActivity() {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        return when (item.itemId) {
-            R.id.mnumain_settings -> true
-            else -> super.onOptionsItemSelected(item)
+        when (item.itemId) {
+            R.id.mnumain_addTask -> taskEditRequest(null)
+            //R.id.mnumain_settings -> true
+            android.R.id.home -> {
+                Log.d(TAG, "onOptionsItemSelected: home button pressed")
+                val fragment = supportFragmentManager.findFragmentById(R.id.task_details_container)
+                removeEditPane(fragment)
+            }
         }
+        return super.onOptionsItemSelected(item)
+    }
+
+    private fun taskEditRequest(task: Task?){
+        Log.d(TAG, "taskEditRequest: starts")
+
+        //Create new fragment to edit task
+        val newFragment = AddEditFragment.newInstance(task)
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.task_details_container, newFragment)
+            .commit()
+        showEditPane()
+        Log.d(TAG, "Exiting taskEditRequest")
+    }
+
+    override fun onBackPressed() {
+        val fragment = supportFragmentManager.findFragmentById(R.id.task_details_container)
+        if (fragment == null || mTwoPane){
+            super.onBackPressed()
+
+        } else{
+            //if in portrait, and on addeditFragment, removing editPane, rather than closing app
+            removeEditPane(fragment)
+        }
+    }
+
+    override fun onStart() {
+        Log.d(TAG, "onStart: called")
+        super.onStart()
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle?) {
+        Log.d(TAG, "onRestoreInstanceState: called")
+        super.onRestoreInstanceState(savedInstanceState)
+    }
+
+    override fun onResume() {
+        Log.d(TAG, "onResume: called")
+        super.onResume()
+    }
+
+    override fun onPause() {
+        Log.d(TAG, "onPause: called")
+        super.onPause()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        Log.d(TAG, "onSaveInstanceState: called")
+        super.onSaveInstanceState(outState)
+    }
+
+    override fun onStop() {
+        Log.d(TAG, "onStop: called")
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        Log.d(TAG, "onDestroy: called")
+        super.onDestroy()
     }
 }
