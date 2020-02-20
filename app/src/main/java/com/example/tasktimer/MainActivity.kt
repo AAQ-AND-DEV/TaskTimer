@@ -12,7 +12,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.content_main.*
 
 private const val TAG = "MainActivity"
-class MainActivity : AppCompatActivity(), AddEditFragment.OnSaveClicked {
+class MainActivity : AppCompatActivity(), AddEditFragment.OnSaveClicked, MainActivityFragment.OnTaskEdit {
 
     //whether activity is in 2-pane mode, ie. in landscape, or on tablet
     private var mTwoPane = false
@@ -81,6 +81,10 @@ class MainActivity : AppCompatActivity(), AddEditFragment.OnSaveClicked {
             }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    override fun onTaskEdit(task: Task) {
+        taskEditRequest(task)
     }
 
     private fun taskEditRequest(task: Task?){

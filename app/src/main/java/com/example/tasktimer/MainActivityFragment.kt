@@ -12,17 +12,21 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.android.synthetic.main.fragment_main.*
+import java.lang.RuntimeException
 
 /**
  * A simple [Fragment] subclass.
  */
 private const val TAG = "MainActivityFragment"
 
-class MainActivityFragment : Fragment() {
+class MainActivityFragment : Fragment(), CursorRecyclerViewAdapter.OnTaskClickListener {
 
     private val viewModel : TaskTimerViewModel by activityViewModels()
-    private val mAdapter = CursorRecyclerViewAdapter(null)
+    private val mAdapter = CursorRecyclerViewAdapter(null, this)
 
+    interface OnTaskEdit{
+        fun onTaskEdit(task: Task)
+    }
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -35,6 +39,10 @@ class MainActivityFragment : Fragment() {
     override fun onAttach(context: Context) {
         Log.d(TAG, "onAttach: called")
         super.onAttach(context)
+
+        if (context !is OnTaskEdit){
+            throw RuntimeException("$context must implement OnTaskEdit")
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,6 +63,20 @@ class MainActivityFragment : Fragment() {
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         Log.d(TAG, "onActivityCreated: called")
         super.onActivityCreated(savedInstanceState)
+    }
+
+    override fun onEditClick(task: Task) {
+        if (activity is OnTaskEdit){
+            (activity as OnTaskEdit).onTaskEdit(task)
+        }
+    }
+
+    override fun onDeleteClick(task: Task) {
+        viewModel.deleteTask(task.id)
+    }
+
+    override fun onTaskLongClick(task: Task) {
+        TODO("not implemented")
     }
 
     override fun onViewStateRestored(savedInstanceState: Bundle?) {

@@ -5,7 +5,6 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.extensions.LayoutContainer
 import kotlinx.android.synthetic.main.task_list_items.*
@@ -14,11 +13,40 @@ import java.lang.IllegalStateException
 class TaskViewHolder(override val containerView: View):
     RecyclerView.ViewHolder(containerView), LayoutContainer{
 
+    fun bind(task: Task, listener: CursorRecyclerViewAdapter.OnTaskClickListener){
+        tli_name.text = task.name
+        tli_desc.text = task.desc
+        tli_edit.visibility = View.VISIBLE
+        tli_delete.visibility = View.VISIBLE
+
+        tli_edit.setOnClickListener {
+            Log.d(TAG, "edit button tapped. task name is ${task.name}")
+            listener.onEditClick(task)
+
+        }
+
+        tli_delete.setOnClickListener {
+            Log.d(TAG, "delete button tapped. task name is ${task.name}")
+            listener.onDeleteClick(task)
+        }
+
+        containerView.setOnLongClickListener {
+            Log.d(TAG, "onLongClick: task name is ${task.name}")
+            listener.onTaskLongClick(task)
+            true
+        }
+    }
 }
 
 private const val TAG = "CursorRecyclerViewAdapt"
 
-class CursorRecyclerViewAdapter(private var cursor: Cursor?) : RecyclerView.Adapter<TaskViewHolder>() {
+class CursorRecyclerViewAdapter(private var cursor: Cursor?, private val listener: OnTaskClickListener) : RecyclerView.Adapter<TaskViewHolder>() {
+
+    interface OnTaskClickListener{
+        fun onEditClick(task: Task)
+        fun onDeleteClick(task:Task)
+        fun onTaskLongClick(task: Task)
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
         Log.d(TAG, "onCreateViewHolder: new view requested")
@@ -27,7 +55,7 @@ class CursorRecyclerViewAdapter(private var cursor: Cursor?) : RecyclerView.Adap
     }
 
     override fun onBindViewHolder(holder: TaskViewHolder, pos: Int) {
-        Log.d(TAG, "onBindViewHolder: data populating view")
+
         val cursor = cursor //avoid problems with smart cast
         if (cursor == null || cursor.count == 0){
             Log.d(TAG, "onBindViewHolder: providing instructions")
@@ -47,16 +75,13 @@ class CursorRecyclerViewAdapter(private var cursor: Cursor?) : RecyclerView.Adap
             //remember ID isn't set in constructor
             task.id = cursor.getLong(cursor.getColumnIndex(TasksContract.Columns.ID))
 
-            holder.tli_name.text = task.name
-            holder.tli_desc.text = task.desc
-            holder.tli_edit.visibility = View.VISIBLE   //tODO: add onClick
-            holder.tli_delete.visibility = View.VISIBLE  //tODO: add onClick
+            holder.bind(task, listener)
 
         }
     }
 
     override fun getItemCount(): Int {
-        Log.d(TAG, "getItemCount: starts")
+
         val cursor = cursor
         val count = if (cursor == null|| cursor.count == 0) { 1
         } else {cursor.count}
