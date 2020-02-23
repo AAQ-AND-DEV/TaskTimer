@@ -12,14 +12,18 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.android.synthetic.main.fragment_main.*
+import java.lang.AssertionError
 import java.lang.RuntimeException
 
 /**
  * A simple [Fragment] subclass.
  */
 private const val TAG = "MainActivityFragment"
+private const val DIALOG_ID_DELETE = 1
+private const val DIALOG_TASK_ID = "task_id"
 
-class MainActivityFragment : Fragment(), CursorRecyclerViewAdapter.OnTaskClickListener {
+class MainActivityFragment : Fragment(), CursorRecyclerViewAdapter.OnTaskClickListener,
+AppDialog.DialogEvents{
 
     private val viewModel : TaskTimerViewModel by activityViewModels()
     private val mAdapter = CursorRecyclerViewAdapter(null, this)
@@ -27,6 +31,7 @@ class MainActivityFragment : Fragment(), CursorRecyclerViewAdapter.OnTaskClickLi
     interface OnTaskEdit{
         fun onTaskEdit(task: Task)
     }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -72,11 +77,29 @@ class MainActivityFragment : Fragment(), CursorRecyclerViewAdapter.OnTaskClickLi
     }
 
     override fun onDeleteClick(task: Task) {
-        viewModel.deleteTask(task.id)
+        val args = Bundle().apply{
+            putInt(DIALOG_ID, DIALOG_ID_DELETE)
+            putString(DIALOG_MESSAGE, getString(R.string.deldiag_message, task.id, task.name))
+            putInt(DIALOG_POSITIVE_RID, R.string.deldiag_positive_caption)
+            putLong(DIALOG_TASK_ID, task.id)
+        }
+        val dialog = AppDialog()
+        dialog.arguments = args
+        dialog.show(childFragmentManager, null)
     }
 
     override fun onTaskLongClick(task: Task) {
         TODO("not implemented")
+    }
+
+    override fun onPositiveDialogResult(dialogId: Int, args: Bundle) {
+        Log.d(TAG, "onPositiveDialogResult: called with id $dialogId")
+
+        if (dialogId == DIALOG_ID_DELETE){
+            val taskId = args.getLong(DIALOG_TASK_ID)
+            if (BuildConfig.DEBUG && taskId == 0L) throw AssertionError("Task ID is zero")
+            viewModel.deleteTask(taskId)
+        }
     }
 
     override fun onViewStateRestored(savedInstanceState: Bundle?) {
