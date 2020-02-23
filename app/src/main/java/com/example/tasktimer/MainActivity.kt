@@ -106,16 +106,16 @@ class MainActivity : AppCompatActivity(), AddEditFragment.OnSaveClicked, MainAct
 
         builder.setTitle(R.string.app_name)
         builder.setIcon(R.mipmap.ic_launcher)
-
-        aboutDialog = builder.setView(messageView).create()
-        aboutDialog?.setCanceledOnTouchOutside(true)
-
-        messageView.setOnClickListener {
-            Log.d(TAG, "entering messageview.onclick")
+        builder.setPositiveButton(R.string.ok){
+                _, _ ->
+            Log.d(TAG, "onclick: entering messageView.onClick")
             if (aboutDialog != null && aboutDialog?.isShowing == true){
                 aboutDialog?.dismiss()
             }
         }
+
+        aboutDialog = builder.setView(messageView).create()
+        aboutDialog?.setCanceledOnTouchOutside(true)
 
         val aboutVersion = messageView.findViewById<TextView>(R.id.about_version)
         aboutVersion.text = BuildConfig.VERSION_NAME
