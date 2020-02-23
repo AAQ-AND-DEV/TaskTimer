@@ -110,7 +110,12 @@ class MainActivity : AppCompatActivity(), AddEditFragment.OnSaveClicked, MainAct
         aboutDialog = builder.setView(messageView).create()
         aboutDialog?.setCanceledOnTouchOutside(true)
 
-
+        messageView.setOnClickListener {
+            Log.d(TAG, "entering messageview.onclick")
+            if (aboutDialog != null && aboutDialog?.isShowing == true){
+                aboutDialog?.dismiss()
+            }
+        }
 
         val aboutVersion = messageView.findViewById<TextView>(R.id.about_version)
         aboutVersion.text = BuildConfig.VERSION_NAME
